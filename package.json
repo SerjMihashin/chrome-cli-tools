@@ -1,6 +1,6 @@
 {
   "name": "chrome-cli-tools",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Набор CLI утилит для управления Google Chrome через Puppeteer. Автоматизация браузера, парсинг сайтов, прохождение тестов, DevTools функции.",
   "main": "chrome-lib.js",
   "bin": {

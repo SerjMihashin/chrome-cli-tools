@@ -1,6 +1,6 @@
 # Chrome CLI Tools
 
-**Turn Qwen Code into a real Chrome operator.**  
+**Turn Qwen Code into a real Chrome operator.**
 CLI-инструменты для **парсинга, дебага и браузерной автоматизации** через **реальный Google Chrome**.
 
 Chrome CLI Tools — это набор утилит, который позволяет работать с браузером **через терминал**, как с инструментом для реальных задач:
@@ -11,6 +11,79 @@ Chrome CLI Tools — это набор утилит, который позвол
 - выполнять JavaScript прямо в контексте страницы
 - снимать скриншоты результата
 - автоматизировать простые сценарии и тесты
+
+## 🚀 Быстрый старт
+
+### 1. Установка
+
+```bash
+# Локальная установка
+npm install
+
+# Глобальная установка (доступно из любой папки)
+npm install -g .
+```
+
+### 2. Запуск Chrome с debugging-портом
+
+```bash
+chrome-browser-start
+# или
+node chrome-browser-start.js
+```
+
+### 3. Использование единого CLI (новый способ!)
+
+```bash
+# Открыть страницу
+chrome open https://example.com
+
+# Получить текст
+chrome text https://example.com h1
+
+# Клик по элементу (Auto-wait автоматически ждёт видимости)
+chrome click https://example.com ".button"
+
+# Ввод текста (Auto-wait автоматически ждёт доступности)
+chrome fill https://example.com "#email" "test@example.com"
+
+# Выполнить JavaScript
+chrome eval https://example.com "document.title"
+
+# Поиск элементов с фильтрами (Locator API)
+chrome locator https://example.com "a" --text "Learn more" --count
+
+# Сделать скриншот
+chrome shot https://example.com --output screenshot.png --full
+
+# Проверить консоль на ошибки
+chrome console https://example.com --error
+
+# Перехват API-запросов
+chrome network https://example.com --api
+
+# Получить localStorage/sessionStorage
+chrome storage https://example.com --local
+
+# Навигация
+chrome nav https://example.com --refresh
+
+# Ожидание элемента
+chrome wait https://example.com ".loader" --timeout 10000
+
+# Прокрутка
+chrome scroll https://example.com --bottom
+```
+
+### 4. Старый способ (тоже работает)
+
+```bash
+node chrome-tab.js https://example.com
+node chrome-text.js https://example.com h1
+node chrome-click.js https://example.com ".button"
+```
+
+---
 
 ## Почему это интересно
 
@@ -64,6 +137,21 @@ Chrome CLI Tools закрывает этот разрыв.
 
 ### Пример такого сценария
 
+**Новый способ (единый CLI — рекомендуется):**
+
+```bash
+chrome-browser-start
+chrome open https://example.com/login
+chrome fill "#email" "user@example.com"
+chrome fill "#password" "password123"
+chrome click "button[type='submit']"
+chrome text "h1"
+chrome console --error
+chrome shot --output dashboard.png
+```
+
+**Старый способ (тоже работает):**
+
 ```bash
 chrome-browser-start
 node chrome-tab.js https://example.com/login
@@ -73,7 +161,7 @@ node chrome-click.js https://example.com/login "button[type='submit']"
 node chrome-text.js https://example.com/dashboard "h1"
 node chrome-console.js https://example.com/dashboard --error
 node chrome-shot.js https://example.com/dashboard --output dashboard.png
-````
+```
 
 ### Что здесь происходит
 
@@ -414,7 +502,82 @@ chrome-storage https://example.com --local
 chrome-quiz https://testsite.com/quiz --first
 ```
 
-## Команды
+## 📦 Единый CLI интерфейс (v2.0+)
+
+**Новый способ использования** — через единую команду `chrome`:
+
+```bash
+chrome <command> <url> [options]
+```
+
+### Все команды единого CLI
+
+| Команда | Описание | Auto-wait |
+|---------|----------|-----------|
+| `chrome open <url>` | Открыть URL в браузере | — |
+| `chrome click <url> <selector>` | Клик по элементу | ✅ |
+| `chrome fill <url> <sel> <txt>` | Ввод текста в поле | ✅ |
+| `chrome eval <url> "<code>"` | Выполнить JavaScript | — |
+| `chrome text <url> [selector]` | Получить текст | — |
+| `chrome html <url>` | Получить HTML страницы | — |
+| `chrome console <url>` | Логи консоли | — |
+| `chrome network <url>` | Сетевые запросы | — |
+| `chrome storage <url>` | Local/Session storage | — |
+| `chrome cookies <url>` | Cookies | — |
+| `chrome shot <url>` | Сделать скриншот | — |
+| `chrome nav <url>` | Навигация (back/forward/refresh) | — |
+| `chrome wait <url> <selector>` | Ожидание элемента | — |
+| `chrome scroll <url>` | Прокрутка страницы | — |
+| `chrome locator <url> <selector>` | Поиск элементов с фильтрами | — |
+
+### Флаги
+
+| Флаг | Описание |
+|------|----------|
+| `--visible` | Ждать видимости элемента |
+| `--hidden` | Ждать исчезновения элемента |
+| `--error` | Только ошибки (console) |
+| `--all` | Все сообщения (console) |
+| `--api` | Только API запросы (network) |
+| `--local` | Только localStorage (storage) |
+| `--session` | Только sessionStorage (storage) |
+| `--clear` | Очистить cookies |
+| `--full` | Полная страница (shot) |
+| `--top` | Прокрутка вверх (scroll) |
+| `--bottom` | Прокрутка вниз (scroll) |
+| `--back` | Назад в истории (nav) |
+| `--forward` | Вперёд в истории (nav) |
+| `--refresh` | Обновить страницу (nav) |
+| `--output <path>` | Путь для скриншота (shot) |
+| `--timeout <ms>` | Таймаут в мс (wait, locator) |
+| `--name <name>` | Имя cookie (cookies) |
+| `--text <text>` | Фильтр по тексту (locator) |
+| `--attr <name>` | Фильтр по атрибуту (locator) |
+| `--count` | Только количество (locator) |
+| `--port <port>` | Порт отладки (по умолчанию 9222) |
+
+### Примеры
+
+```bash
+# Auto-wait работает автоматически
+chrome click https://example.com ".button"
+chrome fill https://example.com "#email" "test@example.com"
+
+# Locator API
+chrome locator https://example.com "a" --text "Learn more" --count
+chrome locator https://example.com "button" --attr "data-add-to-cart"
+
+# Скриншот
+chrome shot https://example.com --output screen.png --full
+
+# DevTools
+chrome console https://example.com --error
+chrome network https://example.com --api
+```
+
+---
+
+## Команды (старый способ — тоже работает)
 
 ### Навигация и открытие
 
