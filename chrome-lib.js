@@ -210,6 +210,311 @@ async function setupDownload(page, downloadPath) {
   });
 }
 
+// ============================================================
+// Функции для единого CLI (chrome-cli.js)
+// ============================================================
+
+/**
+ * Клик по элементу.
+ * @param {Object} page - Puppeteer page
+ * @param {string} selector - CSS селектор
+ * @param {Object} options - Опции { visible: boolean }
+ */
+async function clickElement(page, selector, options = {}) {
+  const { visible = false } = options;
+  
+  if (visible) {
+    await page.waitForSelector(selector, { visible: true });
+  }
+  
+  await page.click(selector);
+  return { success: true, selector };
+}
+
+/**
+ * Ввод текста в поле.
+ * @param {Object} page - Puppeteer page
+ * @param {string} selector - CSS селектор
+ * @param {string} text - Текст для ввода
+ * @param {Object} options - Опции { clear: boolean }
+ */
+async function fillInput(page, selector, text, options = {}) {
+  const { clear = false } = options;
+  
+  if (clear) {
+    await page.click(selector, { clickCount: 3 });
+    await page.keyboard.press('Backspace');
+  }
+  
+  await page.type(selector, text);
+  return { success: true, selector, text };
+}
+
+/**
+ * Прокрутка к элементу.
+ * @param {Object} page - Puppeteer page
+ * @param {string} selector - CSS селектор
+ */
+async function scrollToElement(page, selector) {
+  await page.waitForSelector(selector);
+  await page.evaluate((sel) => {
+    document.querySelector(sel).scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, selector);
+  return { success: true, selector };
+}
+
+/**
+ * Прокрутка вверх/вниз.
+ * @param {Object} page - Puppeteer page
+ * @param {string} direction - 'top' | 'bottom'
+ */
+async function scrollPage(page, direction) {
+  if (direction === 'top') {
+    await page.evaluate(() => window.scrollTo(0, 0));
+  } else if (direction === 'bottom') {
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  }
+  return { success: true, direction };
+}
+
+/**
+ * Ожидание элемента.
+ * @param {Object} page - Puppeteer page
+ * @param {string} selector - CSS селектор
+ * @param {Object} options - Опции { visible: boolean, hidden: boolean, timeout: number }
+ */
+async function waitForSelector(page, selector, options = {}) {
+  const { visible = false, hidden = false, timeout = 30000 } = options;
+  
+  const startTime = Date.now();
+  
+  if (hidden) {
+    await page.waitForSelector(selector, { state: 'hidden', timeout });
+  } else if (visible) {
+    await page.waitForSelector(selector, { visible: true, timeout });
+  } else {
+    await page.waitForSelector(selector, { timeout });
+  }
+  
+  const waitTime = Date.now() - startTime;
+  return { success: true, selector, waitTime };
+}
+
+/**
+ * Выполнение JavaScript.
+ * @param {Object} page - Puppeteer page
+ * @param {string} jsCode - JS код для выполнения
+ */
+async function evaluateJs(page, jsCode) {
+  const result = await page.evaluate(jsCode);
+  return { result };
+}
+
+/**
+ * Получение текста страницы.
+ * @param {Object} page - Puppeteer page
+ * @param {string} selector - CSS селектор (по умолчанию 'body')
+ */
+async function getPageText(page, selector = 'body') {
+  const data = await getPageData(page, selector);
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  return { text: data.text, selector };
+}
+
+/**
+ * Получение HTML страницы.
+ * @param {Object} page - Puppeteer page
+ */
+async function getPageHtml(page) {
+  const html = await page.content();
+  return { html };
+}
+
+/**
+ * Получение логов консоли.
+ * @param {Object} page - Puppeteer page
+ * @param {Object} options - Опции { error: boolean, all: boolean }
+ */
+async function getConsoleLogs(page, options = {}) {
+  const { error = false, all = false } = options;
+  const messages = [];
+  
+  return new Promise((resolve) => {
+    const handleMessage = (msg) => {
+      const type = msg.type();
+      const text = msg.text();
+      
+      if (error && type !== 'error') return;
+      if (!all && type === 'debug') return;
+      
+      messages.push({ type, text });
+    };
+    
+    page.on('console', handleMessage);
+    page.on('pageerror', (err) => {
+      messages.push({ type: 'pageerror', text: err.message });
+    });
+    
+    // Ждём сбора сообщений
+    setTimeout(() => {
+      resolve({ messages });
+    }, 2000);
+  });
+}
+
+/**
+ * Получение сетевых запросов.
+ * @param {Object} page - Puppeteer page
+ * @param {Object} options - Опции { api: boolean, images: boolean }
+ */
+async function getNetworkRequests(page, options = {}) {
+  const { api = false, images = false } = options;
+  const requests = [];
+  
+  return new Promise((resolve) => {
+    page.on('request', (request) => {
+      const resourceType = request.resourceType();
+      const url = request.url();
+      
+      if (api && resourceType !== 'xhr' && resourceType !== 'fetch') return;
+      if (images && resourceType !== 'image') return;
+      
+      requests.push({
+        direction: 'request',
+        method: request.method(),
+        url,
+        type: resourceType,
+      });
+    });
+    
+    page.on('response', (response) => {
+      const request = response.request();
+      const resourceType = request.resourceType();
+      const url = request.url();
+      
+      if (api && resourceType !== 'xhr' && resourceType !== 'fetch') return;
+      if (images && resourceType !== 'image') return;
+      
+      requests.push({
+        direction: 'response',
+        status: response.status(),
+        url,
+        type: resourceType,
+      });
+    });
+    
+    page.on('requestfailed', (request) => {
+      requests.push({
+        direction: 'failed',
+        url: request.url(),
+        type: request.resourceType(),
+        error: request.failure()?.errorText,
+      });
+    });
+    
+    // Ждём сбора запросов
+    setTimeout(() => {
+      resolve({ requests });
+    }, 2000);
+  });
+}
+
+/**
+ * Получение storage (localStorage/sessionStorage).
+ * @param {Object} page - Puppeteer page
+ * @param {Object} options - Опции { local: boolean, session: boolean }
+ */
+async function getStorage(page, options = {}) {
+  const { local = false, session = false } = options;
+  const storage = {};
+  
+  if (!session) {
+    storage.localStorage = await page.evaluate(() => {
+      const data = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        data[key] = localStorage.getItem(key);
+      }
+      return data;
+    });
+  }
+  
+  if (!local) {
+    storage.sessionStorage = await page.evaluate(() => {
+      const data = {};
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        data[key] = sessionStorage.getItem(key);
+      }
+      return data;
+    });
+  }
+  
+  return storage;
+}
+
+/**
+ * Получение cookies.
+ * @param {Object} page - Puppeteer page
+ * @param {Object} options - Опции { name: string, clear: boolean }
+ */
+async function getCookies(page, options = {}) {
+  const { name = null, clear = false } = options;
+  
+  if (clear) {
+    const client = await page.target().createCDPSession();
+    await client.send('Network.clearBrowserCookies');
+    return { cleared: true };
+  }
+  
+  let cookies = await page.cookies();
+  
+  if (name) {
+    cookies = cookies.filter(c => c.name === name);
+  }
+  
+  return { cookies };
+}
+
+/**
+ * Скриншот страницы.
+ * @param {Object} page - Puppeteer page
+ * @param {Object} options - Опции { output: string, full: boolean }
+ */
+async function takeScreenshot(page, options = {}) {
+  const { output = null, full = false } = options;
+  
+  await page.setViewport({ width: 1920, height: 1080 });
+  
+  const screenshotOptions = {
+    path: output,
+    fullPage: full,
+  };
+  
+  await page.screenshot(screenshotOptions);
+  
+  return { path: output };
+}
+
+/**
+ * Навигация (back/forward/refresh).
+ * @param {Object} page - Puppeteer page
+ * @param {string} action - 'back' | 'forward' | 'refresh'
+ */
+async function navigatePage(page, action) {
+  if (action === 'back') {
+    await page.goBack({ waitUntil: 'networkidle2' });
+  } else if (action === 'forward') {
+    await page.goForward({ waitUntil: 'networkidle2' });
+  } else if (action === 'refresh') {
+    await page.reload({ waitUntil: 'networkidle2' });
+  }
+  
+  return { success: true, action, url: page.url() };
+}
+
 module.exports = {
   launchBrowser,
   connectToBrowser,
@@ -218,4 +523,19 @@ module.exports = {
   getNextData,
   setupDownload,
   CHROME_PATHS,
+  // Функции для CLI
+  clickElement,
+  fillInput,
+  scrollToElement,
+  scrollPage,
+  waitForSelector,
+  evaluateJs,
+  getPageText,
+  getPageHtml,
+  getConsoleLogs,
+  getNetworkRequests,
+  getStorage,
+  getCookies,
+  takeScreenshot,
+  navigatePage,
 };
