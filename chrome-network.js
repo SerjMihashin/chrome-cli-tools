@@ -81,10 +81,10 @@ async function main() {
     });
     
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-    
+
     // Ждём для сбора всех запросов
-    await new Promise(r => setTimeout(r,(2000);
-    
+    await new Promise(r => setTimeout(r, 2000));
+
     console.error('[chrome-network] Готово');
     console.log(JSON.stringify(requests, null, 2));
     
