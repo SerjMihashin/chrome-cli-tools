@@ -1,30 +1,247 @@
 # Chrome CLI Tools
 
-Набор CLI-утилит для управления Google Chrome через Puppeteer.
+**Turn Qwen Code into a real Chrome operator.**  
+CLI-инструменты для **парсинга, дебага и браузерной автоматизации** через **реальный Google Chrome**.
 
-Проект позволяет автоматизировать типовые действия в браузере прямо из командной строки: открытие вкладок, навигацию, клики, ввод текста, чтение HTML и текста, выполнение JavaScript, получение cookies/localStorage, перехват сетевых запросов, снятие скриншотов и простое автопрохождение тестов.
+Chrome CLI Tools — это набор утилит, который позволяет работать с браузером **через терминал**, как с инструментом для реальных задач:
 
-## Возможности
+- парсить и вытаскивать данные со страниц
+- проверять консольные ошибки и сетевые запросы
+- кликать по элементам и заполнять формы
+- выполнять JavaScript прямо в контексте страницы
+- снимать скриншоты результата
+- автоматизировать простые сценарии и тесты
 
-- запуск Chrome с debugging-портом
-- открытие ссылок в новых вкладках и отдельных окнах
-- навигация по страницам: back / forward / refresh / hard reload
-- клик по элементам и ввод текста в поля
-- ожидание появления, видимости и скрытия элементов
-- извлечение текста и HTML со страницы
-- выполнение JavaScript в контексте страницы
-- чтение консоли браузера
-- перехват сетевых запросов
-- просмотр cookies и storage
-- создание скриншотов
-- автоматизация простых тестов и квизов
+## Почему это интересно
+
+Обычно AI-агенты умеют:
+
+- писать код
+- запускать команды
+- редактировать файлы
+
+Но им часто не хватает одного важного слоя:  
+**возможности нормально работать с реальным браузером как пользователь**.
+
+Chrome CLI Tools закрывает этот разрыв.
+
+Ты даёшь задачу в **Qwen Code** вроде:
+
+- «Открой страницу и вытащи нужный текст»
+- «Проверь, есть ли ошибки в консоли»
+- «Открой форму, заполни поля и нажми кнопку»
+- «Посмотри API-запросы после клика»
+- «Сделай скриншот после выполнения сценария»
+
+И дальше агент может сам вызвать нужные CLI-команды и выполнить цепочку действий в Chrome.
+
+## Для чего проект создавался
+
+Изначально проект делался как **практический набор инструментов** для реальной работы, а не как демо ради демо.
+
+Основные сценарии:
+
+- **парсинг** и сбор данных с сайтов
+- **дебагинг** страниц через Chrome
+- **автоматизация** действий в браузере
+- **прохождение тестов, форм и типовых сценариев**
+- **связка с Qwen Code** и другими AI-агентами
+
+## Что даёт связка с Qwen Code
+
+Самый сильный сценарий этого проекта — использование вместе с **Qwen Code**.
+
+Идея простая:
+
+1. ты пишешь промпт
+2. Qwen Code запускает команды в терминале
+3. Chrome открывается и выполняет действия
+4. агент читает результат и продолжает сценарий
+
+То есть вместо ручной рутины в браузере получается workflow в духе:
+
+**prompt → terminal commands → real Chrome → result**
+
+### Пример такого сценария
+
+```bash
+chrome-browser-start
+node chrome-tab.js https://example.com/login
+node chrome-fill.js https://example.com/login "#email" "user@example.com"
+node chrome-fill.js https://example.com/login "#password" "password123"
+node chrome-click.js https://example.com/login "button[type='submit']"
+node chrome-text.js https://example.com/dashboard "h1"
+node chrome-console.js https://example.com/dashboard --error
+node chrome-shot.js https://example.com/dashboard --output dashboard.png
+````
+
+### Что здесь происходит
+
+* запускается Chrome с debugging-портом
+* открывается страница логина
+* поля формы заполняются автоматически
+* нажимается кнопка входа
+* читается заголовок страницы после входа
+* проверяются ошибки в консоли
+* сохраняется скриншот финального результата
+
+Именно это и даёт вау-эффект:
+**пишешь задачу в Qwen Code — а дальше агент сам управляет реальным Chrome.**
+
+## Не только для Qwen Code
+
+Хотя основной акцент проекта — **Qwen Code**, сам подход универсальный.
+
+Эти же инструменты можно использовать и в других сценариях:
+
+* другие AI coding agents
+* обычный терминал
+* PowerShell / bash-скрипты
+* Node.js automation-сценарии
+* локальные browser workflows
+* полуавтоматические UI-проверки
+* ручной дебагинг страниц
+
+То есть проект полезен не только как “надстройка для агента”, но и как обычный рабочий CLI-инструментарий.
+
+## Основные возможности
+
+* запуск Chrome с debugging-портом
+* открытие ссылок в новых вкладках и окнах
+* навигация по страницам: back / forward / refresh / hard reload
+* клик по элементам и ввод текста
+* ожидание появления, видимости и исчезновения элементов
+* чтение текста и HTML
+* выполнение JavaScript на странице
+* чтение консоли браузера
+* перехват сетевых запросов
+* получение cookies, localStorage и sessionStorage
+* создание скриншотов
+* автоматизация простых тестов и квизов
+
+## Где это особенно полезно
+
+### 1. Парсинг и сбор данных
+
+Когда нужно быстро вытащить данные со страницы через реальный Chrome:
+
+* текст по селектору
+* HTML
+* результат выполнения JavaScript
+* данные после динамической подгрузки
+
+Примеры:
+
+```bash
+chrome-text https://example.com "h1"
+chrome-html https://example.com
+chrome-eval https://example.com "document.title"
+chrome-eval https://example.com "document.querySelector('.price')?.innerText"
+```
+
+### 2. Дебагинг страниц
+
+Когда нужно быстро проверить, что происходит на странице:
+
+* ошибки в консоли
+* XHR / fetch-запросы
+* localStorage / sessionStorage
+* cookies
+
+Примеры:
+
+```bash
+chrome-console https://example.com --error
+chrome-network https://example.com --api
+chrome-storage https://example.com --local
+chrome-cookies https://example.com
+```
+
+### 3. Автоматизация действий
+
+Когда нужно повторить пользовательский сценарий:
+
+* открыть страницу
+* заполнить форму
+* нажать кнопку
+* дождаться нужного состояния
+* прочитать результат
+
+Примеры:
+
+```bash
+chrome-click https://site.com ".load-more"
+chrome-fill https://site.com/login "#email" "user@example.com"
+chrome-fill https://site.com/login "#password" "password123"
+chrome-wait https://site.com/dashboard ".profile" --visible
+chrome-text https://site.com/dashboard "h1"
+```
+
+### 4. Скриншоты и фиксация результата
+
+Когда нужно зафиксировать итог сценария:
+
+```bash
+chrome-shot https://example.com --output screenshot.png
+chrome-shot https://example.com --full --output full-page.png
+```
+
+### 5. Простые тесты и квизы
+
+Когда нужно быстро прогнать элементарный сценарий без ручных кликов:
+
+```bash
+chrome-quiz https://testsite.com/quiz --first
+chrome-quiz https://testsite.com/quiz --random
+```
+
+## Скриншоты
+
+Сюда очень стоит добавить 2–4 изображения.
+С ними README будет смотреться заметно сильнее.
+
+Рекомендуемая структура:
+
+```md
+## Screenshots
+
+### Qwen Code gives the task
+
+![Qwen Code prompt](docs/screenshots/qwen-prompt.png)
+
+### Chrome executes the scenario
+
+![Chrome automation](docs/screenshots/chrome-run.png)
+
+### Terminal output / parsed result
+
+![Terminal result](docs/screenshots/terminal-result.png)
+
+### Final screenshot captured by the tool
+
+![Final screenshot](docs/screenshots/final-page.png)
+```
+
+### Что лучше показать на скринах
+
+1. **Промпт в Qwen Code**
+   Например задача: открыть страницу, вытащить данные, проверить консоль, сохранить скриншот.
+
+2. **Chrome в процессе выполнения**
+   Открытая страница, форма, результат действия или состояние после сценария.
+
+3. **Вывод в терминале**
+   Например `chrome-text`, `chrome-console --error` или `chrome-network --api`.
+
+4. **Итоговый скриншот**
+   То, что сохранил `chrome-shot`.
 
 ## Требования
 
 Перед использованием убедитесь, что у вас установлены:
 
-- [Node.js](https://nodejs.org/)
-- Google Chrome
+* [Node.js](https://nodejs.org/)
+* Google Chrome
 
 ## Установка
 
@@ -34,11 +251,11 @@
 git clone https://github.com/SerjMihashin/chrome-cli-tools.git
 cd chrome-cli-tools
 npm install
-````
+```
 
 ### Вариант 2. Если скачали ZIP-архив
 
-Распакуйте проект, откройте терминал в папке проекта и выполните:
+Распакуйте архив, откройте терминал в папке проекта и выполните:
 
 ```bash
 npm install
@@ -46,13 +263,13 @@ npm install
 
 ## Быстрый старт
 
-### 1. Запустите Chrome в режиме удалённой отладки
+### 1. Запустите Chrome с debugging-портом
 
 ```bash
 chrome-browser-start
 ```
 
-### 2. Откройте сайт в новой вкладке
+### 2. Откройте страницу в новой вкладке
 
 ```bash
 chrome-tab https://example.com
@@ -64,7 +281,138 @@ chrome-tab https://example.com
 chrome-eval https://example.com "document.title"
 ```
 
----
+## Примеры использования с Qwen Code
+
+### Пример 1. Парсинг текста со страницы
+
+Задача для агента:
+
+> Открой страницу и вытащи заголовок h1.
+
+Команды:
+
+```bash
+chrome-browser-start
+node chrome-tab.js https://example.com
+node chrome-text.js https://example.com "h1"
+```
+
+### Пример 2. Проверка консольных ошибок
+
+Задача для агента:
+
+> Открой страницу и проверь, есть ли ошибки в консоли.
+
+Команды:
+
+```bash
+chrome-browser-start
+node chrome-tab.js https://example.com
+node chrome-console.js https://example.com --error
+```
+
+### Пример 3. Проверка API-запросов
+
+Задача для агента:
+
+> Открой страницу и покажи только API-запросы.
+
+Команды:
+
+```bash
+chrome-browser-start
+node chrome-tab.js https://example.com
+node chrome-network.js https://example.com --api
+```
+
+### Пример 4. Автоматизация формы
+
+Задача для агента:
+
+> Открой страницу логина, заполни форму, нажми кнопку и проверь, открылся ли dashboard.
+
+Команды:
+
+```bash
+chrome-browser-start
+node chrome-tab.js https://example.com/login
+node chrome-fill.js https://example.com/login "#email" "user@example.com"
+node chrome-fill.js https://example.com/login "#password" "password123"
+node chrome-click.js https://example.com/login "button[type='submit']"
+node chrome-text.js https://example.com/dashboard "h1"
+```
+
+### Пример 5. Финальный скриншот результата
+
+Задача для агента:
+
+> После выполнения сценария сохрани скриншот.
+
+Команды:
+
+```bash
+chrome-shot https://example.com/dashboard --output dashboard.png
+```
+
+## Примеры использования через терминал
+
+### Открыть несколько сайтов
+
+```bash
+chrome-browser-start
+chrome-tab https://playwright.dev https://github.com/microsoft/playwright
+```
+
+### Получить текст элемента
+
+```bash
+chrome-text https://example.com "h1"
+```
+
+### Выполнить JavaScript
+
+```bash
+chrome-eval https://example.com "document.title"
+chrome-eval https://example.com "window.innerWidth"
+chrome-eval https://example.com "document.querySelector('h1')?.innerText"
+```
+
+### Кликнуть по кнопке и затем прочитать контент
+
+```bash
+chrome-click https://site.com ".load-more"
+chrome-text https://site.com ".content"
+```
+
+### Перехватить API-запросы
+
+```bash
+chrome-network https://example.com --api
+```
+
+### Посмотреть ошибки в консоли
+
+```bash
+chrome-console https://example.com --error
+```
+
+### Снять скриншот страницы
+
+```bash
+chrome-shot https://example.com --output screenshot.png
+```
+
+### Получить данные из localStorage
+
+```bash
+chrome-storage https://example.com --local
+```
+
+### Пройти простой тест
+
+```bash
+chrome-quiz https://testsite.com/quiz --first
+```
 
 ## Команды
 
@@ -132,75 +480,11 @@ chrome-eval https://example.com "document.title"
 | `chrome-quiz <URL> --random` | Выбирать случайные ответы      |
 | `chrome-quiz <URL> --first`  | Всегда выбирать первый вариант |
 
----
+## Использование в Node.js-скриптах
 
-## Примеры использования
+Эти утилиты можно запускать не только вручную, но и из других Node.js-скриптов и automation-сценариев.
 
-### Открыть несколько сайтов
-
-```bash
-chrome-browser-start
-chrome-tab https://playwright.dev https://github.com/microsoft/playwright
-```
-
-### Получить текст элемента
-
-```bash
-chrome-text https://example.com "h1"
-```
-
-### Выполнить JavaScript
-
-```bash
-chrome-eval https://example.com "document.title"
-chrome-eval https://example.com "window.innerWidth"
-chrome-eval https://example.com "document.querySelector('h1')?.innerText"
-```
-
-### Кликнуть по кнопке и затем прочитать контент
-
-```bash
-chrome-click https://site.com ".load-more"
-chrome-text https://site.com ".content"
-```
-
-### Перехватить API-запросы
-
-```bash
-chrome-network https://example.com --api
-```
-
-### Посмотреть ошибки в консоли
-
-```bash
-chrome-console https://example.com --error
-```
-
-### Снять скриншот страницы
-
-```bash
-chrome-shot https://example.com --output screenshot.png
-```
-
-### Получить данные из localStorage
-
-```bash
-chrome-storage https://example.com --local
-```
-
-### Пройти простой тест
-
-```bash
-chrome-quiz https://testsite.com/quiz --first
-```
-
----
-
-## Использование в AI-агентах и скриптах
-
-Эти утилиты можно использовать не только вручную, но и из других Node.js-скриптов, CLI-обвязок и AI-агентов.
-
-Примеры запуска через Node.js из папки проекта:
+Примеры:
 
 ```bash
 node chrome-tab.js https://example.com
@@ -210,10 +494,6 @@ node chrome-console.js https://example.com --error
 node chrome-network.js https://example.com --api
 node chrome-quiz.js https://example.com/quiz --first
 ```
-
-Если вы хотите вызывать команды из любой папки, добавьте директорию проекта в `PATH` или установите удобные `.bat`-обёртки.
-
----
 
 ## Переменные окружения
 
@@ -226,8 +506,6 @@ node chrome-quiz.js https://example.com/quiz --first
 $env:CHROME_PATH="C:\Program Files\Google\Chrome\Application\chrome.exe"
 $env:NODE_TIMEOUT="15000"
 ```
-
----
 
 ## Структура проекта
 
@@ -255,8 +533,6 @@ chrome-cli-tools/
 └── README.md
 ```
 
----
-
 ## Ограничения
 
 * Для большинства команд Chrome должен быть запущен с debugging-портом
@@ -264,7 +540,17 @@ chrome-cli-tools/
 * Некоторые сайты могут блокировать автоматизацию
 * Работа с динамическими интерфейсами может требовать ожидания элементов через `chrome-wait`
 
----
+## Почему проект может быть полезен
+
+Chrome CLI Tools — это не просто “набор скриптов для Chrome”.
+
+Это рабочий инструмент, который можно использовать как:
+
+* CLI-парсер
+* набор утилит для дебага
+* основу для browser automation
+* прослойку между Qwen Code и реальным Chrome
+* заготовку под более сложные агентные workflow
 
 ## Планы по развитию
 
@@ -272,9 +558,9 @@ chrome-cli-tools/
 * дополнительные режимы ожидания и ретраев
 * более удобный вывод ошибок
 * расширение набора CLI-команд
-* примеры интеграции с AI-ассистентами
+* больше примеров интеграции с AI-агентами
+* готовые сценарии под парсинг и UI-проверки
 
 ## Лицензия
 
 Пока без отдельной лицензии.
-
