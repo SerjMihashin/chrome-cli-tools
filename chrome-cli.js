@@ -7,8 +7,8 @@
  *
  * Команды:
  *   open <url>              Открыть URL в браузере
- *   click <url> <selector>  Клик по элементу
- *   fill <url> <sel> <txt>  Ввод текста в поле
+ *   click <url> <selector>  Клик по элементу (auto-wait)
+ *   fill <url> <sel> <txt>  Ввод текста в поле (auto-wait)
  *   eval <url> "<code>"     Выполнить JavaScript
  *   text <url> [selector]   Получить текст
  *   html <url>              Получить HTML
@@ -20,6 +20,7 @@
  *   nav <url>               Навигация (back/forward/refresh)
  *   wait <url> <selector>   Ожидание элемента
  *   scroll <url>            Прокрутка страницы
+ *   locator <url> <sel>     Поиск элементов (Locator API)
  *
  * Примеры:
  *   chrome open https://example.com
@@ -49,6 +50,7 @@ const {
   getCookies,
   takeScreenshot,
   navigatePage,
+  findLocators,
 } = require('./chrome-lib');
 
 // Парсинг аргументов
@@ -97,8 +99,8 @@ Chrome CLI Tools - Единый интерфейс
 
 Команды:
   open <url>                    Открыть URL в браузере
-  click <url> <selector>        Клик по элементу
-  fill <url> <sel> <text>       Ввод текста в поле
+  click <url> <selector>        Клик по элементу (auto-wait)
+  fill <url> <sel> <text>       Ввод текста в поле (auto-wait)
   eval <url> "<js-code>"        Выполнить JavaScript
   text <url> [selector]         Получить текст (по умолчанию body)
   html <url>                    Получить HTML страницы
@@ -110,6 +112,7 @@ Chrome CLI Tools - Единый интерфейс
   nav <url>                     Навигация (back/forward/refresh)
   wait <url> <selector>         Ожидание элемента
   scroll <url> [selector]       Прокрутка страницы
+  locator <url> <selector>      Поиск элементов с фильтрами
 
 Флаги:
   --visible                     Ждать видимости элемента
@@ -131,11 +134,14 @@ Chrome CLI Tools - Единый интерфейс
   --timeout <ms>                Таймаут в миллисекундах
   --name <name>                 Имя cookie
   --port <port>                 Порт отладки (по умолчанию 9222)
+  --text <text>                 Фильтр по тексту (locator)
+  --attr <name>                 Фильтр по атрибуту (locator)
+  --count                       Только количество (locator)
 
 Примеры:
   chrome open https://example.com
   chrome text https://example.com h1
-  chrome click https://example.com ".button" --visible
+  chrome click https://example.com ".button"
   chrome fill https://example.com "#email" "test@example.com"
   chrome eval https://example.com "document.title"
   chrome shot https://example.com --output screen.png --full
@@ -146,6 +152,7 @@ Chrome CLI Tools - Единый интерфейс
   chrome nav https://example.com --refresh
   chrome wait https://example.com ".loader" --timeout 10000
   chrome scroll https://example.com --bottom
+  chrome locator https://example.com "a" --text "More" --count
 `);
 }
 
@@ -351,6 +358,32 @@ async function main() {
         }
         const pos = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
         console.log(`Scroll position: x=${pos.x}, y=${pos.y}`);
+        break;
+      }
+
+      case 'locator': {
+        if (!selectorOrCode) {
+          console.error('Ошибка: Требуется селектор');
+          console.error(`Пример: chrome locator ${url} ".item"`);
+          process.exit(1);
+        }
+        const textFilter = getFlagValue('--text');
+        const attrFilter = getFlagValue('--attr');
+        const timeout = parseInt(getFlagValue('--timeout') || '30000', 10);
+        
+        const result = await findLocators(page, selectorOrCode, {
+          text: textFilter,
+          attr: attrFilter,
+          count: flags.count,
+          timeout,
+        });
+        
+        if (flags.count) {
+          console.log(`Found: ${result.count} element(s)`);
+        } else {
+          console.error(`[chrome-cli] Найдено элементов: ${result.count}`);
+          console.log(JSON.stringify(result.elements, null, 2));
+        }
         break;
       }
 

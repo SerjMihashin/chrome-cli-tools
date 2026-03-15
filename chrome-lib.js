@@ -215,48 +215,99 @@ async function setupDownload(page, downloadPath) {
 // ============================================================
 
 /**
- * Клик по элементу.
+ * Клик по элементу (с auto-wait).
  * @param {Object} page - Puppeteer page
  * @param {string} selector - CSS селектор
- * @param {Object} options - Опции { visible: boolean }
+ * @param {Object} options - Опции { visible: boolean, timeout: number }
  */
 async function clickElement(page, selector, options = {}) {
-  const { visible = false } = options;
+  const { visible = true, timeout = 30000 } = options; // visible по умолчанию true (Auto-wait)
+
+  // Auto-wait: ждём видимости и стабильности
+  await page.waitForSelector(selector, { visible: true, timeout });
   
-  if (visible) {
-    await page.waitForSelector(selector, { visible: true });
-  }
-  
+  // Дополнительная проверка стабильности (как в Playwright)
+  await page.evaluate((sel) => {
+    return new Promise((resolve) => {
+      const el = document.querySelector(sel);
+      if (!el) return resolve();
+      
+      // Ждём, пока элемент не станет стабильным (не анимируется)
+      let lastRect = el.getBoundingClientRect();
+      let stableCount = 0;
+      
+      const check = () => {
+        const rect = el.getBoundingClientRect();
+        if (rect.x === lastRect.x && rect.y === lastRect.y && rect.width === lastRect.width && rect.height === lastRect.height) {
+          stableCount++;
+          if (stableCount >= 2) return resolve();
+        } else {
+          stableCount = 0;
+          lastRect = rect;
+        }
+        requestAnimationFrame(check);
+      };
+      requestAnimationFrame(check);
+    });
+  }, selector);
+
   await page.click(selector);
   return { success: true, selector };
 }
 
 /**
- * Ввод текста в поле.
+ * Ввод текста в поле (с auto-wait).
  * @param {Object} page - Puppeteer page
  * @param {string} selector - CSS селектор
  * @param {string} text - Текст для ввода
- * @param {Object} options - Опции { clear: boolean }
+ * @param {Object} options - Опции { clear: boolean, timeout: number }
  */
 async function fillInput(page, selector, text, options = {}) {
-  const { clear = false } = options;
+  const { clear = false, timeout = 30000 } = options;
+
+  // Auto-wait: ждём видимости и возможности ввода
+  await page.waitForSelector(selector, { visible: true, timeout });
   
+  // Проверяем, что элемент доступен для ввода
+  await page.evaluate((sel) => {
+    return new Promise((resolve) => {
+      const el = document.querySelector(sel);
+      if (!el) return resolve();
+      
+      // Ждём, пока элемент не станет интерактивным
+      const check = () => {
+        const style = window.getComputedStyle(el);
+        const isDisabled = el.disabled || el.readOnly;
+        const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
+        
+        if (!isDisabled && isVisible) return resolve();
+        setTimeout(check, 100);
+      };
+      check();
+    });
+  }, selector);
+
   if (clear) {
     await page.click(selector, { clickCount: 3 });
     await page.keyboard.press('Backspace');
   }
-  
+
   await page.type(selector, text);
   return { success: true, selector, text };
 }
 
 /**
- * Прокрутка к элементу.
+ * Прокрутка к элементу (с auto-wait).
  * @param {Object} page - Puppeteer page
  * @param {string} selector - CSS селектор
+ * @param {Object} options - Опции { timeout: number }
  */
-async function scrollToElement(page, selector) {
-  await page.waitForSelector(selector);
+async function scrollToElement(page, selector, options = {}) {
+  const { timeout = 30000 } = options;
+  
+  // Auto-wait: ждём появления
+  await page.waitForSelector(selector, { timeout });
+  
   await page.evaluate((sel) => {
     document.querySelector(sel).scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, selector);
@@ -511,8 +562,55 @@ async function navigatePage(page, action) {
   } else if (action === 'refresh') {
     await page.reload({ waitUntil: 'networkidle2' });
   }
-  
+
   return { success: true, action, url: page.url() };
+}
+
+/**
+ * Locator API - поиск элементов с фильтрами (как в Playwright).
+ * @param {Object} page - Puppeteer page
+ * @param {string} selector - CSS селектор
+ * @param {Object} options - Опции { text: string, attr: string, count: boolean, timeout: number }
+ */
+async function findLocators(page, selector, options = {}) {
+  const { text = null, attr = null, count = false, timeout = 30000 } = options;
+
+  // Ждём появления элементов
+  await page.waitForSelector(selector, { timeout });
+
+  const result = await page.evaluate((sel, filterText, filterAttr) => {
+    const elements = Array.from(document.querySelectorAll(sel));
+    
+    // Фильтр по тексту
+    let filtered = elements;
+    if (filterText) {
+      filtered = elements.filter(el => 
+        el.textContent.toLowerCase().includes(filterText.toLowerCase())
+      );
+    }
+    
+    // Фильтр по атрибуту
+    if (filterAttr) {
+      filtered = filtered.filter(el => el.hasAttribute(filterAttr));
+    }
+
+    // Возвращаем информацию об элементах
+    return filtered.map((el, i) => ({
+      index: i,
+      tag: el.tagName.toLowerCase(),
+      text: el.textContent?.trim().slice(0, 100) || '',
+      attributes: Array.from(el.attributes).reduce((acc, attr) => {
+        acc[attr.name] = attr.value;
+        return acc;
+      }, {}),
+    }));
+  }, selector, text, attr);
+
+  if (count) {
+    return { count: result.length, elements: result };
+  }
+
+  return { elements: result, count: result.length };
 }
 
 module.exports = {
@@ -538,4 +636,5 @@ module.exports = {
   getCookies,
   takeScreenshot,
   navigatePage,
+  findLocators,
 };
